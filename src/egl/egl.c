@@ -48,7 +48,22 @@ EGLBoolean gl4es_eglGetConfigs(EGLDisplay dpy, EGLConfig *configs, EGLint config
 
 EGLBoolean gl4es_eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config) {
     LOAD_EGL(eglChooseConfig);
-    return egl_eglChooseConfig(dpy, attrib_list, configs, config_size, num_config);
+    EGLint spoofed_attribs[64];
+    int i = 0;
+    int j = 0;
+    if (attrib_list) {
+        while (attrib_list[j] != EGL_NONE && i < 62) {
+            if (attrib_list[j] == EGL_RENDERABLE_TYPE) {
+                // skip the original EGL_RENDERABLE_TYPE
+                j += 2;
+                continue;
+            }
+            spoofed_attribs[i++] = attrib_list[j++];
+            spoofed_attribs[i++] = attrib_list[j++];
+        }
+    }
+    spoofed_attribs[i++] = EGL_NONE;
+    return egl_eglChooseConfig(dpy, spoofed_attribs, configs, config_size, num_config);
 }
 
 EGLBoolean gl4es_eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value) {

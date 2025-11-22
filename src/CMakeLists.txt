@@ -1,7 +1,7 @@
 include_directories(util)
 
-#file(GLOB_RECURSE GL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/gl/*.c)
-SET(GL_SRC
+#file(GLOB_RECURSE GL4ES_GL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/gl/*.c)
+SET(GL4ES_GL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/gl/arbconverter.c
 	${CMAKE_CURRENT_SOURCE_DIR}/gl/arbgenerator.c
 	${CMAKE_CURRENT_SOURCE_DIR}/gl/arbhelper.c
@@ -72,7 +72,7 @@ SET(GL_SRC
 	${CMAKE_CURRENT_SOURCE_DIR}/gl/math/matheval.c
 )
 
-SET(GL_H
+SET(GL4ES_GL_H
     ${CMAKE_CURRENT_SOURCE_DIR}/../version.h
     ${CMAKE_CURRENT_SOURCE_DIR}/gl/arbconverter.h
 	${CMAKE_CURRENT_SOURCE_DIR}/gl/arbgenerator.h
@@ -137,11 +137,11 @@ SET(GL_H
     ${CMAKE_CURRENT_SOURCE_DIR}/gl/wrap/stub.h
 )
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND NOT NO_LOADER)
+if((${CMAKE_SYSTEM_NAME} MATCHES "Linux" OR ${CMAKE_SYSTEM_NAME} MATCHES "Android") AND NOT NO_LOADER)
     include_directories(glx)
 #    aux_source_directory(glx GLX_SOURCES)
 #    list(APPEND GL_SOURCES ${GLX_SOURCES})
-    list(APPEND GL_SRC
+    list(APPEND GL4ES_GL_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/hardext.c
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/gbm.c
 	    ${CMAKE_CURRENT_SOURCE_DIR}/glx/glx.c
@@ -151,7 +151,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND NOT NO_LOADER)
 	    ${CMAKE_CURRENT_SOURCE_DIR}/glx/streaming.c
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/utils.c
     )
-    list(APPEND GL_H
+    list(APPEND GL4ES_GL_H
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/glx_gbm.h
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/gbmfunc.h
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/drmfunc.h
@@ -163,7 +163,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND NOT NO_LOADER)
     )
 else()
     include_directories(glx)
-    list(APPEND GL_SRC
+    list(APPEND GL4ES_GL_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/hardext.c
     )
     message(STATUS "Not on Linux: building without GLX support.")
@@ -171,14 +171,14 @@ endif()
 
 if(AMIGAOS4)
     include_directories(agl)
-    list(APPEND GL_SRC
+    list(APPEND GL4ES_GL_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/gbm.c
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/glx.c
         ${CMAKE_CURRENT_SOURCE_DIR}/agl/lookup.c
         ${CMAKE_CURRENT_SOURCE_DIR}/agl/amigaos.c
         ${CMAKE_CURRENT_SOURCE_DIR}/agl/agl.c
     )
-    list(APPEND GL_H
+    list(APPEND GL4ES_GL_H
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/hardext.h
         ${CMAKE_CURRENT_SOURCE_DIR}/glx/glx.h
         ${CMAKE_CURRENT_SOURCE_DIR}/agl/amigaos.h
@@ -186,44 +186,44 @@ if(AMIGAOS4)
     )
 endif()
 
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/gl/build_info.c PROPERTIES OBJECT_DEPENDS "${GL_SRC};${GL_H}")
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/gl/build_info.c PROPERTIES OBJECT_DEPENDS "${GL4ES_GL_SRC};${GL4ES_GL_H}")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     if(STATICLIB)
-        add_library(OPENGL32 STATIC ${GL_SRC})
+        add_library(OPENGL32_gl4es STATIC ${GL4ES_GL_SRC})
     else()
-        add_library(OPENGL32 SHARED ${GL_SRC})
+        add_library(OPENGL32_gl4es SHARED ${GL4ES_GL_SRC})
         # some ES simulators used opengl32.dll :(
-        set_target_properties(OPENGL32 PROPERTIES OUTPUT_NAME "GL32")
-        set_target_properties(OPENGL32 PROPERTIES IMPORT_PREFIX "OPEN")
+        set_target_properties(OPENGL32_gl4es PROPERTIES OUTPUT_NAME "GL32")
+        set_target_properties(OPENGL32_gl4es PROPERTIES IMPORT_PREFIX "OPEN")
     endif()
 elseif(STATICLIB)
-    add_library(GL STATIC ${GL_SRC})
+    add_library(GL_gl4es STATIC ${GL4ES_GL_SRC})
 else()
-    add_library(GL SHARED ${GL_SRC})
+    add_library(GL_gl4es SHARED ${GL4ES_GL_SRC})
     
     if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
         if(NOX11)
             if(AMIGAOS4)
-                target_link_libraries(GL m)
+                target_link_libraries(GL_gl4es m)
             else()
-                target_link_libraries(GL m dl)
+                target_link_libraries(GL_gl4es m dl)
             endif()
         else()
-            target_link_libraries(GL X11 m dl)
+            target_link_libraries(GL_gl4es X11 m dl)
         endif()
     endif()
     if(USE_CLOCK)
-        target_link_libraries(GL rt)
+        target_link_libraries(GL_gl4es rt)
     endif()
     if(USE_ANDROID_LOG)
-        target_link_libraries(GL ${log-lib})
+        target_link_libraries(GL_gl4es ${log-lib})
     endif()
-    
-    if(CMAKE_SHARED_LIBRARY_SUFFIX MATCHES ".so")
-        set_target_properties(GL PROPERTIES SUFFIX ".so.1")
-    endif()
-    install(TARGETS GL
+
+#    if(CMAKE_SHARED_LIBRARY_SUFFIX MATCHES ".so")
+#        set_target_properties(GL_gl4es PROPERTIES SUFFIX ".so.1")
+#    endif()
+    install(TARGETS GL_gl4es
       LIBRARY
       DESTINATION "/usr/lib/gl4es/"
     )
@@ -233,23 +233,23 @@ else()
 endif()
 
 
-SET(EGL_SRC
+SET(GL4ES_EGL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/egl/egl.c
     ${CMAKE_CURRENT_SOURCE_DIR}/egl/lookup.c
 )
 
-SET(EGL_H
+SET(GL4ES_EGL_H
     ${CMAKE_CURRENT_SOURCE_DIR}/egl/egl.h
 )
 
 if(EGL_WRAPPER)
-    add_library(EGL SHARED ${EGL_SRC})
-    target_link_libraries(EGL GL dl)
+    add_library(EGL_gl4es SHARED ${GL4ES_EGL_SRC})
+    target_link_libraries(EGL_gl4es GL_gl4es dl)
     if(USE_ANDROID_LOG)
-        target_link_libraries(EGL ${log-lib})
+        target_link_libraries(EGL_gl4es ${log-lib})
     endif()
-    if(CMAKE_SHARED_LIBRARY_SUFFIX MATCHES ".so")
-        set_target_properties(EGL PROPERTIES SUFFIX ".so.1")
-    endif()
+#    if(CMAKE_SHARED_LIBRARY_SUFFIX MATCHES ".so")
+#        set_target_properties(EGL_gl4es PROPERTIES SUFFIX ".so.1")
+#    endif()
 endif()
 
